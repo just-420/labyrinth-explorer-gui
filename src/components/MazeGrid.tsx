@@ -1,13 +1,16 @@
 
-import React, { useEffect, useState } from "react";
-
-type MazeCell = 0 | 1;
+import React from "react";
+import type { MazeCell, Position } from "@/pages/MazeSolver";
 
 interface Props {
   maze: MazeCell[][];
-  visited: { r: number, c: number }[];
-  path: { r: number, c: number }[];
+  visited: Position[];
+  path: Position[];
   isSolving: boolean;
+  start: Position;
+  end: Position;
+  onCellClick?: (r: number, c: number) => void;
+  pickMode?: "start" | "end" | null;
 }
 
 const startColor = "bg-purple-400";
@@ -16,12 +19,13 @@ const wallColor = "bg-gray-800";
 const emptyColor = "bg-white";
 const visitedColor = "bg-green-200 animate-fade-in";
 const pathColor = "bg-yellow-400 animate-scale-in";
+// Extra border highlight for picking
+const pickBorder = "ring-2 ring-offset-2 ring-black/10";
 
-function MazeGrid({ maze, visited, path, isSolving }: Props) {
+function MazeGrid({ maze, visited, path, isSolving, start, end, onCellClick, pickMode }: Props) {
   const rows = maze.length;
   const cols = maze[0]?.length ?? 0;
 
-  // Build a set of visited/path for quick lookup
   const visitedSet = new Set(visited.map(({ r, c }) => `${r},${c}`));
   const pathSet = new Set(path.map(({ r, c }) => `${r},${c}`));
 
@@ -34,6 +38,7 @@ function MazeGrid({ maze, visited, path, isSolving }: Props) {
         maxHeight: rows * 22,
         borderRadius: 16,
         border: "2px solid #9b87f5",
+        cursor: pickMode ? "crosshair" : "default",
       }}
     >
       {maze.map((row, r) =>
@@ -43,17 +48,31 @@ function MazeGrid({ maze, visited, path, isSolving }: Props) {
           if (cell === 1) cellCls = wallColor;
           if (visitedSet.has(key)) cellCls = visitedColor;
           if (pathSet.has(key)) cellCls = pathColor;
-          if (r === 0 && c === 0) cellCls = startColor;
-          if (r === rows - 1 && c === cols - 1) cellCls = endColor;
+          // Start and End take precedence
+          if (r === start.r && c === start.c) cellCls = startColor;
+          if (r === end.r && c === end.c) cellCls = endColor;
+
+          const isPickable =
+            pickMode && cell !== 1 && !(r === start.r && c === start.c) && !(r === end.r && c === end.c);
+
           return (
             <div
               key={key}
-              className={`w-5 h-5 rounded transition-all border border-gray-300 ${cellCls}`}
+              className={`w-5 h-5 rounded transition-all border border-gray-300 ${cellCls} ${isPickable ? pickBorder + " hover:scale-110 cursor-pointer" : ""}`}
               style={{
                 boxShadow:
-                  pathSet.has(key) || (r === 0 && c === 0) || (r === rows - 1 && c === cols - 1)
+                  pathSet.has(key) ||
+                  (r === start.r && c === start.c) ||
+                  (r === end.r && c === end.c)
                     ? "0 0 8px 2px #ffd600"
                     : undefined,
+              }}
+              tabIndex={isPickable ? 0 : -1}
+              role="button"
+              aria-label={`${r},${c}`}
+              onClick={() => isPickable && onCellClick?.(r, c)}
+              onKeyDown={(e) => {
+                if (isPickable && (e.key === "Enter" || e.key === " ")) onCellClick?.(r, c);
               }}
             />
           );
@@ -64,3 +83,4 @@ function MazeGrid({ maze, visited, path, isSolving }: Props) {
 }
 
 export default MazeGrid;
+

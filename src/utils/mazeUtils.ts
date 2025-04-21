@@ -1,12 +1,11 @@
-
 /**
  * Maze cell: 0=space, 1=wall.
- * Start: [0,0], End: [rows-1,cols-1]
+ * Start and End: customizable via arguments.
  * Maze gen: random Prim's variant.
  * Each solver supports animated traversal.
  */
 
-import { Algorithm } from "@/pages/MazeSolver";
+import { Algorithm, Position } from "@/pages/MazeSolver";
 
 // Helpers
 function shuffle<T>(arr: T[]): T[] {
@@ -77,12 +76,14 @@ async function animateTraversal(order: { r: number; c: number }[], setVisited: (
 export async function solveMaze(
   maze: number[][],
   algo: Algorithm,
-  setVisited: (arr: { r: number; c: number }[]) => void
+  setVisited: (arr: { r: number; c: number }[]) => void,
+  start: Position = { r: 0, c: 0 },
+  end?: Position
 ): Promise<{ visitedOrder: { r: number; c: number }[]; finalPath: { r: number; c: number }[] }> {
   const rows = maze.length,
     cols = maze[0].length;
-  const start = { r: 0, c: 0 };
-  const end = { r: rows - 1, c: cols - 1 };
+  const s = start;
+  const e = end ?? { r: rows - 1, c: cols - 1 };
   let visitedOrder: { r: number; c: number }[] = [];
   let finalPath: { r: number; c: number }[] = [];
 
@@ -95,7 +96,7 @@ export async function solveMaze(
       if (!inBounds(r, c) || maze[r][c] === 1 || visited[r][c]) return;
       order.push({ r, c });
       visited[r][c] = true;
-      if (r === end.r && c === end.c) {
+      if (r === e.r && c === e.c) {
         found = true;
         return;
       }
@@ -117,24 +118,24 @@ export async function solveMaze(
     function inBounds(r: number, c: number) {
       return r >= 0 && r < rows && c >= 0 && c < cols;
     }
-    dfs(start.r, start.c);
+    dfs(s.r, s.c);
     visitedOrder = order;
     await animateTraversal(order, setVisited);
     // Backtrack for path
     let path = [];
-    let cur: any = [end.r, end.c];
-    while (cur && !(cur[0] === start.r && cur[1] === start.c)) {
+    let cur: any = [e.r, e.c];
+    while (cur && !(cur[0] === s.r && cur[1] === s.c)) {
       path.push({ r: cur[0], c: cur[1] });
       cur = parent[cur[0]][cur[1]];
     }
-    path.push(start);
+    path.push(s);
     finalPath = path.reverse();
   } else if (algo === "BFS") {
     const visited = Array.from({ length: rows }, () => Array(cols).fill(false));
     const parent = Array.from({ length: rows }, () => Array(cols).fill(null));
-    const queue: [number, number][] = [[start.r, start.c]];
-    visited[start.r][start.c] = true;
-    const order: { r: number; c: number }[] = [{ ...start }];
+    const queue: [number, number][] = [[s.r, s.c]];
+    visited[s.r][s.c] = true;
+    const order: { r: number; c: number }[] = [{ ...s }];
     let found = false;
     function inBounds(r: number, c: number) {
       return r >= 0 && r < rows && c >= 0 && c < cols;
@@ -154,7 +155,7 @@ export async function solveMaze(
           visited[nr][nc] = true;
           parent[nr][nc] = [r, c];
           order.push({ r: nr, c: nc });
-          if (nr === end.r && nc === end.c) found = true;
+          if (nr === e.r && nc === e.c) found = true;
         }
       }
     }
@@ -162,33 +163,31 @@ export async function solveMaze(
     await animateTraversal(order, setVisited);
     // Backtrack for path
     let path = [];
-    let cur: any = [end.r, end.c];
-    while (cur && !(cur[0] === start.r && cur[1] === start.c)) {
+    let cur: any = [e.r, e.c];
+    while (cur && !(cur[0] === s.r && cur[1] === s.c)) {
       path.push({ r: cur[0], c: cur[1] });
       cur = parent[cur[0]][cur[1]];
     }
-    path.push(start);
+    path.push(s);
     finalPath = path.reverse();
   } else if (algo === "A*") {
-    // f = g + h; h=Manhattan
     const visited = Array.from({ length: rows }, () => Array(cols).fill(false));
     const parent = Array.from({ length: rows }, () => Array(cols).fill(null));
     const dist = Array.from({ length: rows }, () => Array(cols).fill(Infinity));
-    const heap: [number, number, number][] = [[0, 0, 0]]; // f, r, c
-    dist[0][0] = 0;
+    const heap: [number, number, number][] = [[0, s.r, s.c]];
+    dist[s.r][s.c] = 0;
     const order: { r: number; c: number }[] = [];
     function inBounds(r: number, c: number) {
       return r >= 0 && r < rows && c >= 0 && c < cols;
     }
-    const h = (r: number, c: number) =>
-      Math.abs(end.r - r) + Math.abs(end.c - c);
+    const h = (r: number, c: number) => Math.abs(e.r - r) + Math.abs(e.c - c);
     while (heap.length) {
       heap.sort((a, b) => a[0] - b[0]);
       const [, r, c] = heap.shift()!;
       if (visited[r][c]) continue;
       order.push({ r, c });
       visited[r][c] = true;
-      if (r === end.r && c === end.c) break;
+      if (r === e.r && c === e.c) break;
       for (const [dr, dc] of [
         [1, 0],
         [0, 1],
@@ -211,32 +210,30 @@ export async function solveMaze(
     await animateTraversal(order, setVisited);
     // Backtrack for path
     let path = [];
-    let cur: any = [end.r, end.c];
-    while (cur && !(cur[0] === start.r && cur[1] === start.c)) {
+    let cur: any = [e.r, e.c];
+    while (cur && !(cur[0] === s.r && cur[1] === s.c)) {
       path.push({ r: cur[0], c: cur[1] });
       cur = parent[cur[0]][cur[1]];
     }
-    path.push(start);
+    path.push(s);
     finalPath = path.reverse();
   } else if (algo === "Dijkstra") {
-    // Dijkstra = BFS with min dist
     const visited = Array.from({ length: rows }, () => Array(cols).fill(false));
     const parent = Array.from({ length: rows }, () => Array(cols).fill(null));
     const dist = Array.from({ length: rows }, () => Array(cols).fill(Infinity));
-    dist[0][0] = 0;
-    const queue: [number, number][] = [[0, 0]];
+    dist[s.r][s.c] = 0;
+    const queue: [number, number][] = [[s.r, s.c]];
     const order: { r: number; c: number }[] = [];
     function inBounds(r: number, c: number) {
       return r >= 0 && r < rows && c >= 0 && c < cols;
     }
     while (queue.length) {
-      // Choose node with min dist
       queue.sort((a, b) => dist[a[0]][a[1]] - dist[b[0]][b[1]]);
       const [r, c] = queue.shift()!;
       if (visited[r][c]) continue;
       order.push({ r, c });
       visited[r][c] = true;
-      if (r === end.r && c === end.c) break;
+      if (r === e.r && c === e.c) break;
       for (const [dr, dc] of [
         [0, 1],
         [1, 0],
@@ -259,12 +256,12 @@ export async function solveMaze(
     await animateTraversal(order, setVisited);
     // Backtrack for path
     let path = [];
-    let cur: any = [end.r, end.c];
-    while (cur && !(cur[0] === start.r && cur[1] === start.c)) {
+    let cur: any = [e.r, e.c];
+    while (cur && !(cur[0] === s.r && cur[1] === s.c)) {
       path.push({ r: cur[0], c: cur[1] });
       cur = parent[cur[0]][cur[1]];
     }
-    path.push(start);
+    path.push(s);
     finalPath = path.reverse();
   }
   return { visitedOrder, finalPath };
