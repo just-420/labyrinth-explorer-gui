@@ -11,6 +11,7 @@ interface Props {
   end: Position;
   onCellClick?: (r: number, c: number) => void;
   pickMode?: "start" | "end" | null;
+  manualMode?: boolean;
 }
 
 const startColor = "bg-purple-400";
@@ -22,7 +23,7 @@ const pathColor = "bg-yellow-400 animate-scale-in";
 // Extra border highlight for picking
 const pickBorder = "ring-2 ring-offset-2 ring-black/10";
 
-function MazeGrid({ maze, visited, path, isSolving, start, end, onCellClick, pickMode }: Props) {
+function MazeGrid({ maze, visited, path, isSolving, start, end, onCellClick, pickMode, manualMode }: Props) {
   const rows = maze.length;
   const cols = maze[0]?.length ?? 0;
 
@@ -38,7 +39,7 @@ function MazeGrid({ maze, visited, path, isSolving, start, end, onCellClick, pic
         maxHeight: rows * 22,
         borderRadius: 16,
         border: "2px solid #9b87f5",
-        cursor: pickMode ? "crosshair" : "default",
+        cursor: pickMode ? "crosshair" : manualMode ? "pointer" : "default",
       }}
     >
       {maze.map((row, r) =>
@@ -52,13 +53,22 @@ function MazeGrid({ maze, visited, path, isSolving, start, end, onCellClick, pic
           if (r === start.r && c === start.c) cellCls = startColor;
           if (r === end.r && c === end.c) cellCls = endColor;
 
+          // Manual mode: allow only open, not-wall, not-start, not-end for path
           const isPickable =
             pickMode && cell !== 1 && !(r === start.r && c === start.c) && !(r === end.r && c === end.c);
+
+          const isManualPickable =
+            manualMode &&
+            cell !== 1 &&
+            !(r === start.r && c === start.c) &&
+            !(r === end.r && c === end.c);
 
           return (
             <div
               key={key}
-              className={`w-5 h-5 rounded transition-all border border-gray-300 ${cellCls} ${isPickable ? pickBorder + " hover:scale-110 cursor-pointer" : ""}`}
+              className={`w-5 h-5 rounded transition-all border border-gray-300 ${cellCls} ${
+                isPickable ? pickBorder + " hover:scale-110 cursor-pointer" : ""
+              } ${isManualPickable ? "hover:brightness-110 cursor-pointer" : ""}`}
               style={{
                 boxShadow:
                   pathSet.has(key) ||
@@ -67,12 +77,16 @@ function MazeGrid({ maze, visited, path, isSolving, start, end, onCellClick, pic
                     ? "0 0 8px 2px #ffd600"
                     : undefined,
               }}
-              tabIndex={isPickable ? 0 : -1}
+              tabIndex={isPickable || isManualPickable ? 0 : -1}
               role="button"
               aria-label={`${r},${c}`}
-              onClick={() => isPickable && onCellClick?.(r, c)}
+              onClick={() => {
+                if (isPickable) onCellClick?.(r, c);
+                else if (isManualPickable) onCellClick?.(r, c);
+              }}
               onKeyDown={(e) => {
-                if (isPickable && (e.key === "Enter" || e.key === " ")) onCellClick?.(r, c);
+                if ((isPickable || isManualPickable) && (e.key === "Enter" || e.key === " "))
+                  onCellClick?.(r, c);
               }}
             />
           );
@@ -83,4 +97,3 @@ function MazeGrid({ maze, visited, path, isSolving, start, end, onCellClick, pic
 }
 
 export default MazeGrid;
-
