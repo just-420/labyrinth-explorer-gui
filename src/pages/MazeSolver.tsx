@@ -3,6 +3,7 @@ import MazeGrid from "@/components/MazeGrid";
 import { useState } from "react";
 import { generateMaze, solveMaze } from "@/utils/mazeUtils";
 import { toast } from "@/hooks/use-toast";
+import { Table, TableBody, TableCell, TableHeader, TableHead, TableRow } from "@/components/ui/table";
 
 export type Algorithm = "DFS" | "BFS" | "A*" | "Dijkstra";
 
@@ -41,6 +42,13 @@ const MazeSolver = () => {
   const [manualPath, setManualPath] = useState<Position[]>([]);
   const [solveTime, setSolveTime] = useState<number>(0);
   const [visitedCount, setVisitedCount] = useState<number>(0);
+  const [algorithmStats, setAlgorithmStats] = useState<{
+    [key in Algorithm]?: {
+      time: number;
+      visitedCount: number;
+      pathLength: number;
+    };
+  }>({});
 
   const handleGenerate = () => {
     const newMaze = generateMaze(rows, cols) as MazeCell[][];
@@ -103,8 +111,18 @@ const MazeSolver = () => {
     const startTime = performance.now();
     const { visitedOrder, finalPath } = await solveMaze(maze, algorithm, setVisited, start, end);
     const endTime = performance.now();
-    setSolveTime(endTime - startTime);
+    const timeElapsed = endTime - startTime;
+    setSolveTime(timeElapsed);
     setVisitedCount(visitedOrder.length);
+    
+    setAlgorithmStats(prev => ({
+      ...prev,
+      [algorithm]: {
+        time: timeElapsed,
+        visitedCount: visitedOrder.length,
+        pathLength: finalPath.length
+      }
+    }));
     
     setPath(finalPath);
     setIsSolving(false);
@@ -112,11 +130,20 @@ const MazeSolver = () => {
     toast({
       title: "Maze Solved!",
       description: 
-        `Time: ${(endTime - startTime).toFixed(2)}ms\n` +
+        `Time: ${timeElapsed.toFixed(2)}ms\n` +
         `Cells visited: ${visitedOrder.length}\n` +
         `Path length: ${finalPath.length}\n` +
         `Time complexity: ${timeComplexities[algorithm]}`,
     });
+  };
+
+  const getBestAlgorithm = () => {
+    if (Object.keys(algorithmStats).length === 0) return null;
+    
+    return Object.entries(algorithmStats).reduce((best, [algo, stats]) => {
+      if (!best) return { algo, stats };
+      return stats.visitedCount < best.stats.visitedCount ? { algo, stats } : best;
+    }, null as null | { algo: string; stats: { time: number; visitedCount: number; pathLength: number } });
   };
 
   const userSolved = manualPath.length > 0 &&
@@ -210,19 +237,58 @@ const MazeSolver = () => {
         />
         
         {solveTime > 0 && !manualMode && (
-          <div className="mt-4 p-6 bg-white/50 rounded-lg shadow-md max-w-2xl mx-auto">
-            <h3 className="font-semibold mb-3 text-lg">Solution Statistics</h3>
-            <div className="space-y-2 text-sm">
-              <p>Time taken: <span className="font-medium">{solveTime.toFixed(2)}ms</span></p>
-              <p>Cells visited: <span className="font-medium">{visitedCount}</span></p>
-              <p>Path length: <span className="font-medium">{path.length}</span></p>
-              <p>Time Complexity: <span className="font-medium">{timeComplexities[algorithm]}</span></p>
-              <div className="mt-4">
-                <h4 className="font-semibold mb-2">How {algorithm} works:</h4>
-                <p className="text-gray-600 leading-relaxed">{algorithmDescriptions[algorithm]}</p>
+          <>
+            <div className="mt-4 p-6 bg-white/50 rounded-lg shadow-md max-w-2xl mx-auto">
+              <h3 className="font-semibold mb-3 text-lg">Solution Statistics</h3>
+              <div className="space-y-2 text-sm">
+                <p>Time taken: <span className="font-medium">{solveTime.toFixed(2)}ms</span></p>
+                <p>Cells visited: <span className="font-medium">{visitedCount}</span></p>
+                <p>Path length: <span className="font-medium">{path.length}</span></p>
+                <p>Time Complexity: <span className="font-medium">{timeComplexities[algorithm]}</span></p>
+                <div className="mt-4">
+                  <h4 className="font-semibold mb-2">How {algorithm} works:</h4>
+                  <p className="text-gray-600 leading-relaxed">{algorithmDescriptions[algorithm]}</p>
+                </div>
               </div>
             </div>
-          </div>
+
+            {Object.keys(algorithmStats).length > 1 && (
+              <div className="mt-4 p-6 bg-white/50 rounded-lg shadow-md max-w-2xl mx-auto w-full">
+                <h3 className="font-semibold mb-3 text-lg">Algorithm Comparison</h3>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Algorithm</TableHead>
+                      <TableHead>Time (ms)</TableHead>
+                      <TableHead>Cells Visited</TableHead>
+                      <TableHead>Path Length</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {Object.entries(algorithmStats).map(([algo, stats]) => (
+                      <TableRow key={algo}>
+                        <TableCell>{algo}</TableCell>
+                        <TableCell>{stats.time.toFixed(2)}</TableCell>
+                        <TableCell>{stats.visitedCount}</TableCell>
+                        <TableCell>{stats.pathLength}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+                
+                {getBestAlgorithm() && (
+                  <div className="mt-4 p-4 bg-green-50 rounded-lg">
+                    <h4 className="font-semibold mb-2">Optimal Algorithm</h4>
+                    <p className="text-sm text-gray-700">
+                      <span className="font-medium">{getBestAlgorithm()?.algo}</span> performed best for this maze,
+                      visiting only {getBestAlgorithm()?.stats.visitedCount} cells to find a path of length {getBestAlgorithm()?.stats.pathLength}.
+                      This suggests it made efficient choices in exploring the maze structure.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </>
         )}
 
         <div className="flex mt-6 gap-4 text-sm justify-center items-center">
