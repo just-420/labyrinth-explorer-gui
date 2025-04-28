@@ -60,6 +60,9 @@ const MazeSolver = () => {
     setPickMode(null);
     setManualMode(true);
     setManualPath([ { r: 0, c: 0 } ]);
+    setSolveTime(0);
+    setVisitedCount(0);
+    setAlgorithmStats({});
   };
 
   const handleStartManual = () => {
