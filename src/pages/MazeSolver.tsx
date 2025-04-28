@@ -19,6 +19,13 @@ const timeComplexities = {
   "Dijkstra": "O((V + E) * log V) - where V is the number of vertices and E is the number of edges"
 };
 
+const algorithmDescriptions = {
+  "DFS": "Depth-First Search explores as far as possible along each branch before backtracking. It works by starting at the root node and exploring as far as possible along each branch before backtracking.",
+  "BFS": "Breadth-First Search explores all nodes at the present depth before moving on to nodes at the next depth level. It guarantees the shortest path in unweighted graphs.",
+  "A*": "A* Search uses heuristics to find the shortest path. It combines the actual distance from start (g-score) with estimated distance to end (h-score) to make intelligent path choices.",
+  "Dijkstra": "Dijkstra's Algorithm finds the shortest path by maintaining a set of unvisited nodes and continuously updating the distances to reach each node."
+};
+
 const MazeSolver = () => {
   const [rows, setRows] = useState(DEFAULT_ROWS);
   const [cols, setCols] = useState(DEFAULT_COLS);
@@ -33,6 +40,7 @@ const MazeSolver = () => {
   const [manualMode, setManualMode] = useState(false);
   const [manualPath, setManualPath] = useState<Position[]>([]);
   const [solveTime, setSolveTime] = useState<number>(0);
+  const [visitedCount, setVisitedCount] = useState<number>(0);
 
   const handleGenerate = () => {
     const newMaze = generateMaze(rows, cols) as MazeCell[][];
@@ -96,13 +104,18 @@ const MazeSolver = () => {
     const { visitedOrder, finalPath } = await solveMaze(maze, algorithm, setVisited, start, end);
     const endTime = performance.now();
     setSolveTime(endTime - startTime);
+    setVisitedCount(visitedOrder.length);
     
     setPath(finalPath);
     setIsSolving(false);
 
     toast({
       title: "Maze Solved!",
-      description: `Time taken: ${(endTime - startTime).toFixed(2)}ms\n${timeComplexities[algorithm]}`,
+      description: 
+        `Time: ${(endTime - startTime).toFixed(2)}ms\n` +
+        `Cells visited: ${visitedOrder.length}\n` +
+        `Path length: ${finalPath.length}\n` +
+        `Time complexity: ${timeComplexities[algorithm]}`,
     });
   };
 
@@ -197,10 +210,18 @@ const MazeSolver = () => {
         />
         
         {solveTime > 0 && !manualMode && (
-          <div className="mt-4 p-4 bg-white/50 rounded-lg shadow">
-            <h3 className="font-semibold mb-2">Solution Statistics</h3>
-            <p className="text-sm">Time taken: {solveTime.toFixed(2)}ms</p>
-            <p className="text-sm text-gray-600 mt-1">Time Complexity: {timeComplexities[algorithm]}</p>
+          <div className="mt-4 p-6 bg-white/50 rounded-lg shadow-md max-w-2xl mx-auto">
+            <h3 className="font-semibold mb-3 text-lg">Solution Statistics</h3>
+            <div className="space-y-2 text-sm">
+              <p>Time taken: <span className="font-medium">{solveTime.toFixed(2)}ms</span></p>
+              <p>Cells visited: <span className="font-medium">{visitedCount}</span></p>
+              <p>Path length: <span className="font-medium">{path.length}</span></p>
+              <p>Time Complexity: <span className="font-medium">{timeComplexities[algorithm]}</span></p>
+              <div className="mt-4">
+                <h4 className="font-semibold mb-2">How {algorithm} works:</h4>
+                <p className="text-gray-600 leading-relaxed">{algorithmDescriptions[algorithm]}</p>
+              </div>
+            </div>
           </div>
         )}
 
