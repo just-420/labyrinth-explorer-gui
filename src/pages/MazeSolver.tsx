@@ -140,6 +140,47 @@ const MazeSolver = () => {
     });
   };
 
+  const handleSolveAll = async () => {
+    if (manualMode) return;
+    setIsSolving(true);
+    setVisited([]);
+    setPath([]);
+    setAlgorithmStats({});
+    
+    const algorithms: Algorithm[] = ["DFS", "BFS", "A*", "Dijkstra"];
+    
+    for (const algo of algorithms) {
+      const startTime = performance.now();
+      const { visitedOrder, finalPath } = await solveMaze(maze, algo, () => {}, start, end);
+      const endTime = performance.now();
+      const timeElapsed = endTime - startTime;
+      
+      setAlgorithmStats(prev => ({
+        ...prev,
+        [algo]: {
+          time: timeElapsed,
+          visitedCount: visitedOrder.length,
+          pathLength: finalPath.length
+        }
+      }));
+    }
+    
+    const bestAlgo = getBestAlgorithm();
+    if (bestAlgo) {
+      const { visitedOrder, finalPath } = await solveMaze(maze, bestAlgo.algo as Algorithm, setVisited, start, end);
+      setPath(finalPath);
+      setSolveTime(bestAlgo.stats.time);
+      setVisitedCount(bestAlgo.stats.visitedCount);
+    }
+    
+    setIsSolving(false);
+    
+    toast({
+      title: "All Algorithms Compared!",
+      description: "Check the statistics below to see how each algorithm performed.",
+    });
+  };
+
   const getBestAlgorithm = () => {
     if (Object.keys(algorithmStats).length === 0) return null;
     
@@ -166,6 +207,7 @@ const MazeSolver = () => {
         setAlgorithm={setAlgorithm}
         onGenerate={handleGenerate}
         onSolve={handleSolve}
+        onSolveAll={handleSolveAll}
         isSolving={isSolving}
       />
       <main className="w-full flex flex-col items-center justify-center p-6">

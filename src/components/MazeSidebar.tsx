@@ -16,6 +16,7 @@ interface Props {
   setAlgorithm: (algo: Algorithm) => void;
   onGenerate: () => void;
   onSolve: () => void;
+  onSolveAll: () => void;
   isSolving: boolean;
 }
 
@@ -28,6 +29,7 @@ export default function MazeSidebar({
   setAlgorithm,
   onGenerate,
   onSolve,
+  onSolveAll,
   isSolving,
 }: Props) {
   return (
@@ -86,6 +88,14 @@ export default function MazeSidebar({
           className="bg-blue-500 hover:bg-blue-600"
         >
           {isSolving ? "Solving..." : "Solve"}
+        </Button>
+        <Button
+          onClick={onSolveAll}
+          disabled={isSolving}
+          variant="secondary"
+          className="bg-purple-500 hover:bg-purple-600 text-white"
+        >
+          {isSolving ? "Comparing..." : "Solve with All Algorithms"}
         </Button>
       </Card>
       <div className="text-xs text-gray-500 text-center mt-auto">
