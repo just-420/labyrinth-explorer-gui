@@ -4,6 +4,9 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { FileCode } from "lucide-react";
+import ERDiagram from "./ERDiagram";
 
 const algorithms: Algorithm[] = ["DFS", "BFS", "A*", "Dijkstra"];
 
@@ -98,6 +101,19 @@ export default function MazeSidebar({
           {isSolving ? "Comparing..." : "Solve with All Algorithms"}
         </Button>
       </Card>
+      
+      <Sheet>
+        <SheetTrigger asChild>
+          <Button variant="outline" className="bg-blue-50 hover:bg-blue-100 flex items-center gap-2">
+            <FileCode size={18} />
+            <span>View ER Diagram</span>
+          </Button>
+        </SheetTrigger>
+        <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
+          <ERDiagram />
+        </SheetContent>
+      </Sheet>
+      
       <div className="text-xs text-gray-500 text-center mt-auto">
         Maze Solver Bot © {new Date().getFullYear()}
       </div>
